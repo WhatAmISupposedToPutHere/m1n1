@@ -147,7 +147,8 @@ class EPICService:
 
     def handle_report(self, category, type, seq, fd):
         st = int(type)
-        self.log(f"Report {category}/{st:#x} #{seq}")
+        if self.ep.name != "lasep":
+            self.log(f"Report {category}/{st:#x} #{seq}")
         handler = self.reporthandler.get(st, None)
         if handler is None:
             self.log("unknown report: 0x%x" % (st))
@@ -181,10 +182,12 @@ class EPICService:
         off = fd.tell()
         data = fd.read()
 
+        chexdump(self.iface.readmem(self.rxbuf, 4096))
+
         ret = data
         if (hasattr(self, "last_call") and hasattr(self.last_call, "RETS")):
             call = getattr(self, "last_call")
-            item = call.RETS.parse(data)
+            item = call.parse(data)
             ret = item
             self.reply = ret
             return
@@ -249,6 +252,25 @@ class EPICService:
             self.ep.asc.work()
         return self.reply
 
+    def send_notifycmd(self, type, data, retlen=None, **kwargs):
+        print(retlen)
+        if retlen is None:
+            retlen = len(data)
+        cmd = Container()
+        cmd.rxbuf = self.rxbuf_dva
+        cmd.txbuf = self.txbuf_dva
+        cmd.txlen = len(data)
+        cmd.rxlen = retlen
+        self.iface.writemem(self.txbuf, data[4:])
+        self.reply = None
+        pkt = EPICCmd.build(cmd)
+        self.ep.send_epic(self.chan, EPICType.NOTIFY, EPICCategory.COMMAND, type, self.seq, pkt)
+        self.seq += 1
+        while self.reply is None:
+            self.ep.asc.work()
+        return self.reply
+
+
 class EPICStandardService(EPICService):
     def call(self, group, cmd, data=b'', replen=None):
         msg = struct.pack("<2xHIII48x", group, cmd, len(data), 0x69706378) + data
@@ -306,7 +328,7 @@ class EPICEndpoint(AFKRingBufEndpoint):
     def handle_ipc(self, data):
         fd = BytesIO(data)
         hdr = EPICHeader.parse_stream(fd)
-        sub = EPICSubHeader.parse_stream(fd)
+        sub = EPICSubHeaderV2.parse_stream(fd)
 
         if self.verbose > 2:
             self.log(f"Ch {hdr.channel} Type {hdr.type} Ver {hdr.version} Seq {hdr.seq}")
@@ -385,6 +407,9 @@ class EPICEndpoint(AFKRingBufEndpoint):
         self.serv_map[chan].last_call = None
         return ret
 
+    def send_notifycmd(self, chan, call, **kwargs):
+        return self.serv_map[chan].send_notifycmd(call.TYPE, call.ARGS.build(call.args), **kwargs)
+
     def send_notify(self, chan, call, **kwargs):
         return self.serv_map[chan].send_notify(call.TYPE, call.ARGS.build(call.args), **kwargs)
 
@@ -404,7 +429,7 @@ class EPICEndpoint(AFKRingBufEndpoint):
         sub.type = type
         sub.seq = seq
         sub.inline_len = inline_len
-        pkt = EPICHeader.build(hdr) + EPICSubHeader.build(sub) + data
+        pkt = EPICHeader.build(hdr) + EPICSubHeaderV2.build(sub) + data
         super().send_ipc(pkt)
 
     def send_epicv2(self, chan, ptype, category, type, seq, data, inline_len=0, **kwargs):

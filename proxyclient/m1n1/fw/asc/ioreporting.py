@@ -46,6 +46,7 @@ class ASCIOReportingEndpoint(ASCBaseEndpoint):
     @msg_handler(0xc, IOReporting_Start)
     def Start(self, msg):
         self.log("start")
+        self.send(IOReporting_Start())
         return True
 
     @msg_handler(8, IOReporting_Report)

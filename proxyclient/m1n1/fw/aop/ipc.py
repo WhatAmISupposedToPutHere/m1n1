@@ -51,6 +51,8 @@ class EPICCall:
 
     def read_resp(self, f):
         self.rets = self.RETS.parse_stream(f)
+    def parse(self, data):
+        return self.RETS.parse(data)
 
 CALLTYPES = []
 def reg_calltype(calltype):
@@ -174,18 +176,27 @@ ALSLuxReport = Struct(
     "unk0" / Const(0xec, Hex(Int8ul)),
     "sequence" / Int32ul,
     "timestamp" / Hex(Int64ul),
-    "red" / Int32ul,
-    "green" / Int32ul,
-    "blue" / Int32ul,
-    "clear" / Int32ul,
+    "pad0" / Padding(3),
+    "pad1" / Padding(4),
+    "unk1" / Int32ul,
+    "unk2" / Int32ul,
+    "unk3" / Int32ul,
+    "unk4" / Int32ul,
+    "unk5" / Int32ul,
     "lux" / Float32l,
-    "unk_zero" / Int32ul, # 0
-    "status" / Int32ul, # 3
-    "gain" / Int16ul,
-    "unk3" / Int8ul,
-    "unk4" / Int8ul,
-    "unk5" / Int16ul,
-    "integration_time" / Int32ul,
+    "rest" / HexDump(GreedyBytes),
+    # "red" / Int32ul,
+    # "green" / Int32ul,
+    # "blue" / Int32ul,
+    # "clear" / Int32ul,
+    # "lux" / Float32l,
+    # "unk_zero" / Int32ul, # 0
+    # "status" / Int32ul, # 3
+    # "gain" / Int16ul,
+    # "unk3" / Int8ul,
+    # "unk4" / Int8ul,
+    # "unk5" / Int16ul,
+    # "integration_time" / Int32ul,
 )
 
 @reg_calltype
@@ -489,6 +500,9 @@ class GetDeviceProp(WrappedCall):
             DEVPROPS,
         default=HexDump(GreedyBytes))
     )
+
+    def parse(self, data):
+        return self.RETS.parse(data, devid=self.args.devid, modifier=self.args.modifier)
 
     def read_resp(self, f):
         self.rets = self.RETS.parse_stream(f,

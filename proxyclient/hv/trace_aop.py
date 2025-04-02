@@ -326,7 +326,7 @@ class AOPTracer(ASCTracer, AOPBase):
             data, annot = readdump(l, hdr, f)
             epid = int(annot["epid"])
             epmap[epid].handle_ipc(data, dir)
-                        
+
 
 if __name__ == "__main__":
     # We can replay traces by saving the textual output of live tracing
@@ -341,8 +341,8 @@ dart_aop_tracer.start()
 dart_aop_base = u.adt["/arm-io/dart-aop"].get_reg(0)[0]
 
 #hv.trace_range(irange(*u.adt["/arm-io/dart-aop"].get_reg(1)))
-#hv.trace_range(irange(*u.adt["/arm-io/aop"].get_reg(1)))
-#hv.trace_range(irange(*u.adt["/arm-io/aop"].get_reg(3)))
+hv.trace_range(irange(*u.adt["/arm-io/aop"].get_reg(0)))
+hv.trace_range(irange(*u.adt["/arm-io/aop"].get_reg(2)))
 #hv.trace_range(irange(*u.adt["/arm-io/admac-aop-audio"].get_reg(0)))
 
 aop_tracer = AOPTracer(hv, "/arm-io/aop", verbose=1)

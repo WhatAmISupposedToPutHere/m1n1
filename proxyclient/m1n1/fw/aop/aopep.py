@@ -4,6 +4,59 @@ from construct import *
 from ..afk.epic import *
 from .ipc import *
 
+class AOPLASService(EPICService):
+    NAME = "las"
+    SHORT = "las"
+    @report_handler(0xc4, GreedyBytes)
+    def handle_lux(self, seq, fd, rep):
+        return True
+
+
+class AOPLASEndpoint(EPICEndpoint):
+    SHORT = "lasep"
+    SERVICES = [
+        AOPLASService,
+    ]
+    def send_notify(self, call, chan="las"):
+        return super(AOPLASEndpoint, self).send_notify(chan, call)
+
+    def send_roundtrip(self, call, chan="las"):
+        return super(AOPLASEndpoint, self).send_roundtrip(chan, call)
+
+    def send_cmd(self, call, chan="las"):
+        return super(AOPLASEndpoint, self).send_cmd(chan, call)
+
+class AOPUNK29Service(EPICService):
+    NAME = "unk29"
+    SHORT = "unk29"
+
+class AOPUNK29Endpoint(EPICEndpoint):
+    SHORT = "unk29"
+    SERVICES = [
+        AOPUNK29Service,
+    ]
+
+class AOPCMAService(EPICService):
+    NAME = "cma"
+    SHORT = "cma"
+
+class AOPCMAEndpoint(EPICEndpoint):
+    SHORT = "cma"
+    SERVICES = [
+        AOPCMAService,
+    ]
+
+class AOPUNK2BService(EPICService):
+    NAME = "unk2B"
+    SHORT = "unk2B"
+
+class AOPUNK2BEndpoint(EPICEndpoint):
+    SHORT = "unk2B"
+    SERVICES = [
+        AOPUNK2BService,
+    ]
+
+
 # spuapp
 class AOPSPUAppService(EPICService):
     NAME = "SPUApp"
@@ -41,9 +94,6 @@ class AOPGyroEndpoint(EPICEndpoint):
     SERVICES = [
         AOPGyroService,
     ]
-
-    def start_queues(self):
-        pass  # don't init gyro ep (we don't have one)
 
 # als
 class AOPALSService(EPICService):
@@ -115,8 +165,11 @@ class AOPAudioEndpoint(EPICEndpoint):
     def send_cmd(self, call, chan="aop-audio", **kwargs):
         return super(AOPAudioEndpoint, self).send_cmd(chan, call, **kwargs)
 
-    def send_notifycmd(self, type, data, chan="aop-audio", **kwargs):
-        return super(AOPAudioEndpoint, self).send_notifycmd(chan, type, data, **kwargs)
+    def send_notifycmd(self, data, chan="aop-audio", **kwargs):
+        return super(AOPAudioEndpoint, self).send_notifycmd(chan, data, **kwargs)
+
+    def send_roundtrip_notifycmd(self, call, chan="aop-audio", **kwargs):
+        return super(AOPAudioEndpoint, self).send_roundtrip_notifycmd(chan, call, **kwargs)
 
 class AOPVoiceTriggerService(EPICService):
     NAME = "aop-voicetrigger"

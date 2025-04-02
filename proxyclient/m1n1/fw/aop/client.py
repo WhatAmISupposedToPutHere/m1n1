@@ -10,11 +10,15 @@ class AOPClient(StandardASC, AOPBase):
         0x20: AOPSPUAppEndpoint,
         0x21: AOPAccelEndpoint,
         0x22: AOPGyroEndpoint,
-        0x24: AOPALSEndpoint,
+        0x23: AOPALSEndpoint,
+        0x24: AOPLASEndpoint,
         0x25: AOPWakehintEndpoint,
         0x26: AOPUNK26Endpoint,
         0x27: AOPAudioEndpoint,
         0x28: AOPVoiceTriggerEndpoint,
+        0x29: AOPUNK29Endpoint,
+        0x2a: AOPCMAEndpoint,
+        0x2b: AOPUNK2BEndpoint,
     }
     def __init__(self, u, dev_path, dart=None):
         node = u.adt[dev_path]

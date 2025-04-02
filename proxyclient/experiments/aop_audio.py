@@ -9,6 +9,7 @@ from construct import *
 from m1n1.setup import *
 from m1n1.shell import run_shell
 from m1n1.hw.dart import DART
+from m1n1.hw.sep import SEP
 from m1n1.fw.aop.client import AOPClient
 from m1n1.fw.aop.ipc import *
 
@@ -20,8 +21,8 @@ from m1n1.fw.aop.ipc import *
 # see povik's commit #fc66046
 
 # aop nodes have no clocks described in adt for j293. it does it itself
-p.pmgr_adt_clocks_enable("/arm-io/aop")
-p.pmgr_adt_clocks_enable("/arm-io/dart-aop")
+#p.pmgr_adt_clocks_enable("/arm-io/aop")
+#p.pmgr_adt_clocks_enable("/arm-io/dart-aop")
 
 # Set up a secondary proxy channel so that we can stream
 # the microphone samples
@@ -68,9 +69,13 @@ decimator_config = Container(
     coefficients=GreedyRange(Int32sl).parse(decm.coefficients),
 )
 
+sep = SEP(p, p.iface, u)
+sep.boot()
+
 dart = DART.from_adt(u, "/arm-io/dart-aop",
                      iova_range=(u.adt["/arm-io/dart-aop"].vm_base, 0x1000000000))
 dart.initialize()
+
 
 aop = AOPClient(u, "/arm-io/aop", dart)
 aop.update_bootargs({
@@ -116,35 +121,43 @@ def aop_stop():
         )
     ))
 
-    aop.audio.send_notify(SetDeviceProp(
-        devid='hpai',
-        modifier=202,
-        data=Container(
-            devid='hpai',
-            cookie=4,
-            target_pstate='idle',
-            unk2=0,
-        )
-    ))
+#    aop.audio.send_notify(SetDeviceProp(
+#        devid='hpai',
+#        modifier=202,
+#        data=Container(
+#            devid='hpai',
+#            cookie=4,
+#            target_pstate='idle',
+#            unk2=0,
+#        )
+#    ))
+
+dart.dump_all()
 
 def main():
     aop.start()
     for epno in [0x20, 0x21, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28]:
         aop.start_ep(epno)
-    aop.work_for(0.3)
+    aop.work_for(1)
     audep = aop.audio
 
-    audep.send_notify(AttachDevice(devid='hpai')) # high power audio input; actual mic
-    audep.send_notify(AttachDevice(devid='lpai')) # low power audio input; voice trigger mic
-    audep.send_notify(AttachDevice(devid='pdm0')) # leap: low-energy audio processor I think
-    # [syslog] * [udioPDMNodeBase.cpp:554]PDMDev<pdm0> off ->xi0 , 0->2400000 AP state 1
+    ret = audep.send_roundtrip(AttachDevice(devid='hpai')) # high power audio input; actual mic
+    #print(ret)
 
-    # initChannelControl (<7, 7, 1, 7>)
-    audep.send_notify(SetDeviceProp(devid='lpai', modifier=301, data=Container(unk1=7, unk2=7, unk3=1, unk4=7)))
-    audep.send_notify(SetDeviceProp(devid='pdm0', modifier=200, data=pdm_config))
-    audep.send_notify(SetDeviceProp(devid='pdm0', modifier=210, data=decimator_config))
-    ret = audep.send_roundtrip(AudioPropertyState(devid="hpai"))
-    print("hpai state: %s" % (ret.state)) # idle
+    ret = audep.send_roundtrip(AttachDevice(devid='lpai')) # low power audio input; voice trigger mic
+    #print(ret)
+
+    ret = audep.send_roundtrip(AttachDevice(devid='pdm0'))
+    #print(ret)
+
+    ret = audep.send_roundtrip(SetDeviceProp(devid='lpai', modifier=301, data=Container(unk1=7, unk2=7, unk3=1, unk4=7)))
+    #print(ret)
+
+    ret = audep.send_notifycmd(SetDeviceProp(devid='pdm0', modifier=200, data=pdm_config))
+    #print(ret)
+
+    ret = audep.send_notifycmd(SetDeviceProp(devid='pdm0', modifier=210, data=decimator_config))
+    #print(ret)
 
     audep.send_notify(SetDeviceProp(
         devid='hpai',

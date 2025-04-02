@@ -176,7 +176,7 @@ def run_shell(locals, msg=None, exitmsg=None, poll_func=None):
                     desc = obj_name + str(signature(obj))
                 except:
                     continue
-                qn = obj.__qualname__
+                qn = getattr(obj, "__qualname__", "")
                 if qn.find('.') > 0:
                     a = qn.split('.')
                     if a[0] not in subcmd_list:
@@ -185,7 +185,7 @@ def run_shell(locals, msg=None, exitmsg=None, poll_func=None):
                         cmd_list[a[0]] = 1
                     else:
                         cmd_list[a[0]] += 1
-                    clist = subcmd_list[a[0]] 
+                    clist = subcmd_list[a[0]]
                 else:
                     clist = None
                 if locals[obj_name].__doc__:

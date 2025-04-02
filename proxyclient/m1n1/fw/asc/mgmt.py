@@ -87,6 +87,8 @@ class ASCManagementEndpoint(ASCBaseEndpoint):
                 if ep == 0: continue
                 if ep < 0x10:
                     self.asc.start_ep(ep)
+            while self.iop_power_state != 0x20:
+                self.asc.work()
             self.boot_done()
 
         return True
