@@ -36,6 +36,9 @@
 #define AUSPLL_DTC_VREG_ADJUST GENMASK(16, 14)
 #define AUSPLL_DTC_VREG_BYPASS BIT(7)
 
+#define AUSPMA_RX_TOP_PMAFSM_RX_CTRL                     0x480
+#define AUSPMA_RX_TOP_PMAFSM_RX_CTRL_EQ_CDRLOCK_ON_START BIT(1)
+
 struct atc_tunable {
     u32 offset : 24;
     u32 size : 8;
@@ -116,6 +119,7 @@ static const struct adt_tunable_info atc_tunables_t8122[] = {
     {"tunable_AUX_TOP", "apple,tunable-common-b", 0x16000, 0x4000, true},
     {"tunable_AUSCMN_SHM", "apple,tunable-common-b", 0xa00, 0x200, true},
     {"tunable_CLKMON_CFG", "apple,tunable-common-b", 0x2600, 0x100, false},
+    {"tunable_CIO_SHIM", "apple,tunable-common-b", 0x4000, 0x4000, true},
 
     {"tunable_LN0_RX_TOP_USB_DFLT", "apple,tunable-lane0-usb", 0x9000, 0x1000, true},
     {"tunable_LN0_RX_TOP_USB_EQA", "apple,tunable-lane0-usb", 0x9000, 0x1000, false},
@@ -464,6 +468,21 @@ static void dt_copy_atc_tunables(void *dt, const char *adt_path, const char *dt_
             goto cleanup;
     }
 
+    if (adt_is_compatible_at(adt, adt_node, "atc-phy,t8122", 0) ||
+        adt_is_compatible_at(adt, adt_node, "atc-phy,t8132", 0)) {
+        static const char *fdt_names[] = {"apple,tunable-lane0-cio", "apple,tunable-lane1-cio"};
+        static const u32 lane_offsets[] = {0x9000, 0x10000};
+        for (size_t i = 0; i < 2; i++) {
+            if (fdt_appendprop_u32(dt, fdt_node, fdt_names[i],
+                                   lane_offsets[i] + AUSPMA_RX_TOP_PMAFSM_RX_CTRL) < 0)
+                goto cleanup;
+            if (fdt_appendprop_u32(dt, fdt_node, fdt_names[i],
+                                   AUSPMA_RX_TOP_PMAFSM_RX_CTRL_EQ_CDRLOCK_ON_START) < 0)
+                goto cleanup;
+            if (fdt_appendprop_u32(dt, fdt_node, fdt_names[i], 0) < 0)
+                goto cleanup;
+        }
+    }
     /*
      * For backwards compatibility with downstream drivers copy apple,tunable-common-b to
      * apple,tunable-common.
